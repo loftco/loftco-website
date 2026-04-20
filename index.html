@@ -674,7 +674,8 @@
     @media (prefers-reduced-motion: reduce) {
       .reveal { opacity: 1; transform: none; transition: none; }
       .reveal-stagger > * { opacity: 1; transform: none; transition: none; }
-      .hero-content { opacity: 1; transform: none; transition: none; }
+      .hero-content { transition: none; }
+      .hero-content.visible { transform: none; }
       html { scroll-behavior: auto; }
     }
   </style>
@@ -1151,7 +1152,16 @@
 
     // Run on page load
     document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(function() { measureAndSet(); runLoftco(); }, 100);
+      setTimeout(function() {
+        measureAndSet();
+        var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced) {
+          document.getElementById('loftco-layered').classList.add('visible');
+          document.getElementById('hero-content').classList.add('visible');
+          return;
+        }
+        runLoftco();
+      }, 100);
     });
 
     window.addEventListener('resize', measureAndSet);
