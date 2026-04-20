@@ -732,6 +732,16 @@
         s.type = 'video/mp4';
         v.appendChild(s);
         v.load();
+        v.play().catch(function() {
+          // Safari may block autoplay — retry on first user interaction
+          var kick = function() {
+            v.play();
+            document.removeEventListener('touchstart', kick);
+            document.removeEventListener('scroll', kick);
+          };
+          document.addEventListener('touchstart', kick, { once: true });
+          document.addEventListener('scroll', kick, { once: true });
+        });
       })();
     </script>
 
