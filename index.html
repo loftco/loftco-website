@@ -710,6 +710,13 @@
     <script>
       (function() {
         var v = document.getElementById('hero-video');
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          v.removeAttribute('autoplay');
+          v.removeAttribute('loop');
+          v.poster = 'assets/images/framing-1.jpg';
+          v.load();
+          return;
+        }
         var src = window.innerWidth <= 768
           ? 'assets/videos/itom-ae-mobile.mp4'
           : 'assets/videos/itom-ae-desktop.mp4';
