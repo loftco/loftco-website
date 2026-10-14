@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loftco Motion Mark</title>
+<!-- Self-hosted build: no outside requests. Outfit (SIL OFL 1.1, see vendor/OFL.txt), GSAP 3.13 (GSAP standard license, free). -->
+<style>
+  @font-face {
+    font-family: 'OutfitLocal';
+    src: url('vendor/Outfit-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-display: block;
+  }
+  @font-face {
+    font-family: 'Outfit';
+    src: url('vendor/Outfit-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-display: block;
+  }
+  :root {
+    --paper: oklch(0.97 0.005 80);
+    --ink: oklch(0.18 0.01 250);
+    --stone: oklch(0.45 0.01 250);
+    --accent: #002b7f;
+    --legacy: #969ba5;                          /* blue-gray, lightly tinted toward Loftco blue: the unfinished state */
+    --chrome: oklch(0.18 0.01 250 / 0.55);
+    --rule: oklch(0.18 0.01 250 / 0.15);
+  }
+  :root[data-theme="dark"] {
+    --paper: oklch(0.14 0.015 255);
+    --ink: oklch(0.95 0.005 80);
+    --stone: oklch(0.7 0.01 250);
+    --accent: #5b8cff;
+    --chrome: oklch(0.95 0.005 80 / 0.55);
+    --rule: oklch(0.95 0.005 80 / 0.15);
+  }
+  :root[data-theme="blue"] {
+    --legacy: #ffffff;                          /* white logo: build stage in white outlines, no gray */
+    --paper: #002b7f;
+    --ink: #ffffff;
+    --stone: oklch(0.85 0.03 255);
+    --accent: #ffffff;
+    --chrome: oklch(1 0 0 / 0.6);
+    --rule: oklch(1 0 0 / 0.2);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Outfit', system-ui, sans-serif;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+    transition: background 0.4s ease;
+  }
+  .stage {
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    min-height: 0;
+  }
+  #logo {
+    width: min(92vw, 860px);
+    height: auto;
+    overflow: visible;
+  }
+  .acc { fill: var(--accent); }
+  .member, .build { stroke: var(--legacy); fill: none; }   /* unfinished = blue-gray */
+  .lumber { fill: #c8964f; }
+  .tiltup { position: fixed; pointer-events: none; z-index: 2; }
+  .tiltCam { position: absolute; top: 0; height: 100%; }
+  .tiltPanel { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 100%; }
+  .tiltPanel svg { position: absolute; overflow: hidden; }   /* only this letter; placed to the sub-pixel by layoutTilt */
+  .cable { stroke: var(--stone); fill: none; }
+  .block { fill: var(--stone); }
+  .ink { fill: var(--ink); }
+  .stone { fill: var(--stone); }
+  .wordch { font-family: 'OutfitLocal', 'Outfit', sans-serif; font-weight: 700; }
+  .cheap { font-family: 'Outfit', sans-serif; stroke: var(--accent); stroke-linejoin: round; }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 16px 22px;
+    border-top: 1px solid var(--rule);
+    color: var(--chrome);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .controls button {
+    font: inherit;
+    font-weight: 500;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .controls button:hover, .controls button[aria-pressed="true"] {
+    border-color: var(--ink);
+  }
+  .controls input[type="range"] {
+    width: min(320px, 60vw);
+    accent-color: var(--accent);
+  }
+  .embed body { background: transparent; display: block; }
+  .embed .controls { display: none; }
+  .embed .stage { padding: 0; height: 100vh; }
+  .embed #logo { width: 100%; height: 100%; }
+  .group { display: flex; gap: 6px; align-items: center; }
+  .phase { min-width: 7.5em; text-align: left; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <svg id="logo" viewBox="-700 -2150 9100 3650" role="img" aria-label="Loftco logo cycling through Better, Faster, Cheaper and back to Loftco">
+    <defs>
+      <clipPath id="roofClip"><rect id="roofClipRect" x="-2000" y="-6000" width="20000" height="12000"/></clipPath>
+      <clipPath id="slot"><rect id="slotRect" x="-1500" width="11500" y="0" height="0"/></clipPath>
+    </defs>
+    <g id="world">
+      <g clip-path="url(#slot)">
+        <g id="speed"></g>
+        <g id="loftco"><path id="loftcoPath" class="acc" d="M 1430.1154,166.37095 C 1302.6195,160.49599 1164.3096,130.2217 1078.0723,89.312948 1045.6562,73.935605 1001.3013,44.547453 974.18187,20.478616 944.09734,-6.2220376 897.74781,-60.423654 875.95214,-94.391693 c -7.31383,-11.398577 -16.53202,-25.397727 -20.48513,-31.109777 -15.127,-21.85963 -34.82769,-69.67929 -42.93017,-104.2067 -30.90504,-131.69337 -40.46215,-250.15017 -27.2446,-337.68372 1.51865,-10.05729 3.64606,-24.86904 4.72738,-32.91487 1.08161,-8.04608 7.0375,-29.75546 13.23531,-48.24318 24.35308,-72.64224 62.98642,-134.15033 117.58673,-187.20939 67.6481,-65.73834 146.08804,-109.14616 260.58244,-144.20329 18.4051,-5.63551 101.4202,-23.03298 130.4412,-27.33638 130.1451,-19.2994 318.9102,-19.3517 451.7097,-0.124 90.1912,13.05775 155.6693,32.09744 222.4383,64.67957 130.6602,63.76008 217.5144,165.43402 265.5765,310.89098 9.5914,29.02887 23.1414,103.87411 28.6635,158.33005 3.929,38.74328 3.879,108.07139 -0.1015,142.63171 -15.5724,135.1654 -61.0781,229.24246 -153.0367,316.382283 -56.8638,53.884701 -120.5039,91.24304 -209.3687,122.905637 -41.495,14.7847 -105.8682,32.27849 -126.7838,34.45416 -5.3639,0.5583 -20.7243,3.412 -34.1341,6.34188 -77.2763,16.88501 -196.7493,23.16683 -326.7117,17.17824 z m 145.0701,-224.239237 c 137.3396,-14.245268 231.5624,-57.943463 280.2399,-129.969103 19.1942,-28.40095 32.0409,-63.97944 42.0089,-116.34044 4.7631,-25.01967 5.3358,-36.32321 5.4915,-108.39168 0.1862,-86.21922 -0.3814,-92.05528 -14.3073,-146.9906 -9.0903,-35.86106 -33.2772,-87.72125 -53.5853,-114.89427 -43.9434,-58.79818 -104.0325,-93.59313 -190.4488,-110.28023 -26.6466,-5.14555 -35.8124,-5.63387 -105.9713,-5.648 -61.0891,-0.0282 -83.2863,0.89216 -108.4977,4.42088 -117.0766,16.38687 -185.6062,52.9212 -227.7642,121.42567 -11.3564,18.45357 -15.6798,27.69633 -30.6133,65.44822 -12.523,31.65705 -21.9214,107.70873 -19.5845,158.47977 4.3721,95.0063 13.0895,144.81074 34.7705,198.6497 19.5577,48.56721 40.0795,78.4095 75.775,110.19029 18.4542,16.43025 28.7317,23.34252 50.2048,33.766383 47.851,23.228627 85.3478,31.470156 186.6992,41.034315 18.8952,1.783398 53.7029,1.368346 75.5826,-0.900905 z M 7065.8966,166.26608 c -140.3301,-6.67602 -299.9172,-45.38885 -379.8382,-92.141583 -60.3799,-35.320893 -123.7152,-95.196925 -164.9281,-155.919557 -30.335,-44.69461 -33.8375,-50.476 -45.7366,-75.49731 -16.1904,-34.0453 -24.8181,-61.56596 -34.8252,-111.08473 -24.7991,-122.71475 -30.5016,-214.91192 -18.656,-301.63194 12.1122,-88.67209 46.0701,-163.64554 106.6274,-235.41313 50.743,-60.13745 128.3202,-113.97538 213.4167,-148.10955 65.6247,-26.32365 103.2693,-35.80483 203.2517,-51.19148 131.422,-20.2251 334.4078,-19.795 466.9055,0.989 112.0353,17.57425 198.5886,49.11982 273.5102,99.6843 68.1974,46.02682 103.1562,84.44252 159.924,175.74014 18.1374,29.17048 46.1282,100.90643 51.372,131.66002 1.2576,7.37535 4.5354,24.38165 7.284,37.79144 11.66,56.88255 13.4581,77.28335 13.6459,154.82239 0.1832,75.86679 -0.2031,80.57861 -10.9845,134.0982 -9.4534,46.92331 -28.0527,99.8507 -47.2681,134.50925 -10.3932,18.74596 -42.9397,64.95025 -58.1029,82.484944 -25.5494,29.545977 -70.3402,69.678832 -99.8442,89.460734 -32.9701,22.105285 -98.7703,54.713082 -141.229,69.987002 -35.7123,12.8462 -93.321,29.13456 -120.7893,34.15128 -10.4413,1.90715 -29.4075,5.77455 -42.147,8.5939 -76.8504,17.00912 -199.4744,23.30214 -331.5883,17.01668 z m 170.6703,-227.597655 c 64.2696,-8.899889 116.3836,-23.958122 160.8254,-46.470815 25.424,-12.87892 63.1111,-42.22725 78.4631,-61.10206 30.8664,-37.94907 49.1158,-85.40525 58.5427,-152.23457 2.1417,-15.18508 3.2693,-48.35372 3.2738,-96.30669 0,-60.79224 -0.7361,-76.85025 -4.3935,-95.08785 -11.8079,-58.88921 -14.8262,-68.32205 -38.5181,-120.3768 -15.3383,-33.70041 -57.2966,-82.27883 -89.382,-103.48411 -36.101,-23.85909 -80.975,-40.70036 -132.2385,-49.62894 -35.7264,-6.22241 -158.7782,-6.1908 -207.2432,0.0537 -84.7432,10.91819 -145.8041,34.8816 -191.2448,75.05391 -15.8841,14.04252 -38.3656,44.63063 -48.9017,66.536 -29.3102,60.93859 -38.2972,105.92842 -38.302,191.74062 0,80.53315 9.4796,143.89408 29.6906,198.36468 18.6902,50.37139 35.4613,76.44842 72.5364,112.78604 22.8931,22.43769 31.6687,29.25412 49.561,38.49488 35.945,18.564999 67.8491,28.904212 112.6881,36.519484 17.3705,2.949925 31.8287,4.624983 83.4598,9.671309 17.3142,1.691732 74.8626,-0.883683 101.1829,-4.528306 z M 471.92299,156.58128 C 306.09904,155.38433 263.83314,154.40333 237.86076,151.1487 114.51244,135.69154 22.981191,107.49278 -41.295551,65.146799 -60.607834,52.423784 -91.101766,26.713608 -100.59205,15.152644 c -34.86013,-42.467442 -57.08468,-75.971943 -78.77237,-118.751844 -19.84958,-39.15413 -25.55113,-54.1711 -32.6236,-85.92318 -4.83509,-21.70628 -4.88811,-27.78481 -3.66016,-419.87571 0.68516,-218.81732 2.14968,-398.75381 3.25413,-399.85861 2.74124,-2.7411 339.78274,-2.3891 342.52961,0.358 1.24487,1.2447 2.5477,161.85405 3.05065,376.0873 0.95751,407.89058 0.2844,388.57166 14.89146,427.4845 9.36526,24.94823 25.45891,48.45039 49.26183,71.9387 31.52948,31.11253 63.95312,47.797433 113.83187,58.577127 25.95411,5.609626 66.62895,6.852503 378.23509,11.559041 91.23086,1.377929 118.22791,2.483487 120.68802,4.942457 2.47817,2.476823 3.32942,26.003761 3.90434,107.900798 l 0.73508,104.733747 -6.25478,2.37832 c -3.62322,1.37774 -33.16891,2.15928 -70.22213,1.85822 -35.18213,-0.28593 -155.03251,-1.17727 -266.334,-1.98023 z m 1951.54851,-2.4709 c -5.0388,-5.03922 -5.0552,-5.64142 -3.0482,-112.764888 1.1098,-59.234367 1.6187,-150.488072 1.1309,-202.786112 -0.9958,-106.73228 3.5165,-350.34685 7.1796,-387.66518 1.3165,-13.4098 3.4096,-34.80453 4.6513,-47.54394 8.6548,-88.78963 52.4337,-186.24817 111.8786,-249.06037 74.037,-78.22969 168.7359,-122.04372 325.798,-150.73533 8.0458,-1.46975 38.2179,-5.56436 67.0491,-9.09916 l 52.4205,-6.427 332.3862,-0.9429 c 259.6932,-0.7367 333.1722,-0.2903 335.9817,2.0413 3.1162,2.5861 3.3731,17.31783 1.9273,110.46841 -0.9714,62.56227 -2.6511,108.726 -4.0192,110.45528 -1.8212,2.30224 -74.897,3.14391 -324.5606,3.73856 l -322.2101,0.76724 -20.7244,5.48863 c -110.2062,29.1865 -172.5522,82.46471 -194.3108,166.0482 -8.5911,33.00197 -10.7991,53.61144 -6.4857,60.53419 l 3.4185,5.4858 431.0305,0 c 341.086,0 431.8565,0.63611 434.9911,3.04778 3.5037,2.6958 4.1597,15.59111 5.6813,111.68184 1.2885,81.36134 1.0015,109.97688 -1.1426,113.98325 l -2.863,5.34939 -433.6059,0 c -389.2122,0 -433.9289,0.38826 -436.7524,3.79015 -2.5163,3.03193 -3.1854,49.65354 -3.346,233.038991 -0.1947,223.997949 -0.3094,229.330119 -4.9336,232.711129 -3.9827,2.91238 -32.2892,3.46047 -178.5944,3.46047 -172.7812,0 -173.8931,-0.0282 -178.9277,-5.06573 z m 1798.3251,3.02182 c -4.0231,-0.45424 -8.5117,-1.8153 -9.9749,-3.02519 -1.9045,-1.57447 -2.6747,-134.50724 -2.7105,-467.86193 -0.039,-371.00852 -0.6749,-466.41558 -3.124,-469.36659 -2.7102,-3.26538 -30.576,-3.70386 -235.533,-3.70386 -227.3298,0 -232.5146,-0.10433 -234.9825,-4.71582 -1.6269,-3.03922 -2.5242,-41.67061 -2.5242,-108.65811 0,-66.98695 0.8973,-105.6184 2.5242,-108.6577 2.4855,-4.6443 12.3753,-4.7161 651.8264,-4.7161 625.9376,0 649.4485,0.1596 653.3377,4.4588 3.6251,4.0055 4.0356,15.26728 4.0356,110.76181 0,93.38794 -0.4659,106.76819 -3.8313,110.13399 -3.4309,3.43058 -28.6643,3.83124 -241.2329,3.83124 -174.0048,0 -237.8568,0.73679 -239.1063,2.75848 -0.9374,1.51723 -1.7411,211.67468 -1.7856,467.01723 -0.061,356.146845 -0.7594,465.18729 -2.9956,468.24546 -2.6444,3.61646 -17.9,4.00126 -164.7618,4.15444 -89.0158,0.0959 -165.1385,-0.20301 -169.1613,-0.65615 z m 1369.8805,-1.73211 c -70.9291,-7.74384 -160.8711,-26.76752 -216.6364,-45.8214 -78.4309,-26.797417 -140.7221,-66.375624 -187.121,-118.8918862 -37.8392,-42.8290088 -46.853,-55.2821158 -76.1174,-105.1612838 -44.3074,-75.51908 -73.3888,-191.79583 -74.5541,-298.09503 -0.9062,-82.66572 9.2399,-166.91602 27.1344,-225.30698 29.9877,-97.85418 80.0386,-177.51111 146.4905,-233.1425 89.0159,-74.521 191.6977,-115.76979 337.8338,-135.71271 37.5091,-5.1188 46.7753,-5.2707 377.6383,-6.1969 311.3907,-0.8717 339.5116,-0.623 343.1693,3.0346 3.5703,3.5704 3.9838,15.57559 3.9838,115.69435 0,102.81582 -0.3396,112.118 -4.2668,116.82873 l -4.2665,5.11848 -313.3025,0.80478 c -307.4545,0.78974 -313.7118,0.89971 -335.2452,5.88928 -68.5447,15.88187 -116.6702,45.48078 -152.6073,93.8591 -28.2664,38.05223 -42.1063,79.09573 -53.6696,159.16572 -4.6373,32.11264 -5.0937,42.81571 -3.7416,87.77346 2.6431,87.90341 14.2548,148.5095 39.4758,206.04246 11.5805,26.41656 20.0966,38.75403 40.5601,58.759 40.0536,39.15642 90.5054,64.006336 147.5167,72.658279 11.9526,1.814198 115.1711,2.67301 324.2739,2.698429 168.7067,0.02825 308.1641,0.941185 309.9049,2.045647 2.4906,1.579478 3.4688,26.889004 4.5859,118.622094 1.3509,110.917701 1.2029,116.772991 -3.0218,119.862411 -6.4763,4.73552 -634.2857,4.24665 -678.0172,-0.52813 z"/></g>
+        <g id="words"></g>
+      </g>
+      <g id="rig"></g>
+      <g id="truss"></g>
+      <g id="nailStreaks"></g>
+      <g id="roof" clip-path="url(#roofClip)"><path class="acc" d="m 3843.5264,-1849.8197 -1951.1789,538.9004 0,13.0408 3917.3372,0 -0.1749,-12.9527 c -654.5359,-181.7197 -1309.5471,-361.5304 -1965.9834,-538.9885 z"/></g>
+      <g id="nail"><path class="acc" d="m -434.19436,332.36358 0,261.69626 c 0,143.95157 0.53803,262.35322 1.28666,263.26706 0.74798,0.91412 59.43644,0.94237 59.43644,0.94237 l 59.17946,-133.51847 4060.7448,0 c 2721.405,0 4061.8286,-0.86847 4064.346,-2.51319 2.0655,-1.35004 74.5225,-28.63669 161.0708,-60.94751 86.5481,-32.31065 159.2298,-59.89473 161.3293,-61.26143 3.0863,-2.01176 3.3077,-2.8568 1.0289,-4.39801 -1.55,-1.04751 -73.5703,-33.43907 -159.7852,-71.94271 -86.2157,-38.5039 -159.1347,-71.65622 -162.1004,-73.51407 -4.5896,-2.87456 -610.0091,-3.14154 -4066.1469,-3.14154 l -4060.4873,0 -60.46566,-114.04058 z"/></g>
+    </g>
+  </svg>
+</div>
+
+<div class="controls">
+  <div class="group">
+    <button id="btn-play" aria-pressed="false">Pause</button>
+    <button id="btn-replay">Replay</button>
+  </div>
+  <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub animation">
+  <span class="phase" id="phase">Loftco</span>
+  <div class="group" role="group" aria-label="Animation">
+    <button data-mode="build">Opening</button>
+    <button data-mode="loop">Loop</button>
+    <button data-mode="both">Both</button>
+  </div>
+  <div class="group" role="group" aria-label="Speed">
+    <button data-speed="0.5">0.5×</button>
+    <button data-speed="1" aria-pressed="true">1×</button>
+  </div>
+  <div class="group" role="group" aria-label="Background">
+    <button data-theme="light" aria-pressed="true">Paper</button>
+    <button data-theme="dark">Night</button>
+    <button data-theme="blue">Loftco blue</button>
+  </div>
+</div>
+
+<script src="vendor/gsap.min.js"></script>
+<script>
+(async function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  // Options: ?mode=build|loop|both  ?embed=1&color=white|blue&hold=<seconds still between loops>&loops=<stop after N loops>
+  var params = new URLSearchParams(location.search);
+  var EMBED = params.get('embed') === '1';
+  var HOLD = parseFloat(params.get('hold') || '0') || 0;
+  if (EMBED) {
+    document.documentElement.classList.add('embed');
+    if (params.get('color')) document.documentElement.style.setProperty('--accent', params.get('color') === 'white' ? '#ffffff' : params.get('color') === 'blue' ? '#002b7f' : params.get('color'));
+    if (params.get('color') === 'white') document.documentElement.style.setProperty('--legacy', '#ffffff');   // white variant: no gray build stage (unreadable over video)
+  }
+  var svg = document.getElementById('logo');
+  var FONT = "'OutfitLocal', 'Outfit', sans-serif";
+
+  try { await document.fonts.load('700 100px OutfitLocal'); } catch (e) {}
+  try { await document.fonts.load('700 100px Outfit'); await document.fonts.load('500 100px Outfit'); await document.fonts.load('900 100px Outfit'); } catch (e) {}
+
+  function el(tag, attrs, parent) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  // ── Geometry, all in the logo's own units ──
+  var roof = document.getElementById('roof');
+  var nail = document.getElementById('nail');
+  var loftco = document.getElementById('loftco');
+  var rb = roof.getBBox(), nb = nail.getBBox(), tb = loftco.getBBox();
+  var CX = rb.x + rb.width / 2;                 // roof and nail share this centre
+  var roofBottom = rb.y + rb.height;
+  var nailTop = nb.y;
+  var capH = tb.height;
+  var baseY = tb.y + tb.height;                 // LOFTCO baseline
+
+  // Split LOFTCO into its six letters along their real outlines: break the path into its closed shapes,
+  // attach each hole (the O counters) to the shape that contains it, and order the letters left to right.
+  var lpath = document.getElementById('loftcoPath');
+  function subpathsAbsolute(d) {
+    var tk = d.match(/[MmCcLlHhVvZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g), i = 0, cmd = '', out = [], curS = null;
+    var x = 0, y = 0, sx = 0, sy = 0;
+    function num() { return parseFloat(tk[i++]); }
+    while (i < tk.length) {
+      if (/[A-Za-z]/.test(tk[i])) cmd = tk[i++];
+      var rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+      if (C === 'Z') { curS.push('Z'); x = sx; y = sy; continue; }
+      if (C === 'M') {
+        x = (rel ? x : 0) + num(); y = (rel ? y : 0) + num(); sx = x; sy = y;
+        curS = ['M', x, y]; out.push(curS); cmd = rel ? 'l' : 'L'; continue;
+      }
+      if (C === 'L') { x = (rel ? x : 0) + num(); y = (rel ? y : 0) + num(); curS.push('L', x, y); continue; }
+      if (C === 'H') { x = (rel ? x : 0) + num(); curS.push('L', x, y); continue; }
+      if (C === 'V') { y = (rel ? y : 0) + num(); curS.push('L', x, y); continue; }
+      if (C === 'C') {
+        var bx = rel ? x : 0, by = rel ? y : 0, c = [num() + bx, num() + by, num() + bx, num() + by, num() + bx, num() + by];
+        curS.push('C', c[0], c[1], c[2], c[3], c[4], c[5]); x = c[4]; y = c[5]; continue;
+      }
+      i++;                                       // unknown token: skip
+    }
+    return out.map(function (s) { return s.join(' '); });
+  }
+  var shapes = subpathsAbsolute(lpath.getAttribute('d')).map(function (d) {
+    var t = el('path', { d: d }, svg), bb = t.getBBox();
+    svg.removeChild(t);
+    return { d: d, x0: bb.x, x1: bb.x + bb.width, y0: bb.y, y1: bb.y + bb.height, area: bb.width * bb.height };
+  }).sort(function (p, q) { return q.area - p.area; });
+  var letters = [];
+  shapes.forEach(function (sh) {
+    var host = letters.filter(function (L) {
+      return sh.x0 >= L.x0 && sh.x1 <= L.x1 && sh.y0 >= L.y0 && sh.y1 <= L.y1;
+    })[0];
+    if (host) host.d += ' ' + sh.d; else letters.push({ d: sh.d, x0: sh.x0, x1: sh.x1, y0: sh.y0, y1: sh.y1 });
+  });
+  letters.sort(function (p, q) { return p.x0 - q.x0; });
+  var PAD = 60;                                 // room for the outline stroke
+  var bands = letters.map(function (L) { return { x0: L.x0 - PAD, x1: L.x1 + PAD, d: L.d }; });
+  var defs = svg.querySelector('defs');
+  defs.appendChild(lpath);                      // the whole-word path stays only as a reference for the framing
+  lpath.removeAttribute('class');
+  var panels = bands.map(function (b) {
+    var face = el('path', { d: b.d, class: 'acc' }, loftco);
+    return { face: face };
+  });
+
+  // Tilt-up overlay (intro only): each letter as a solid 3.5in-deep panel in real CSS 3D, seen from
+  // slightly above the deck, rotating up on its bottom plate. Hands off to the flat SVG letters once upright.
+  var ctm = svg.getScreenCTM();
+  function toPx(x, y) { return { x: ctm.a * x + ctm.c * y + ctm.e, y: ctm.b * x + ctm.d * y + ctm.f }; }
+  var tiltLayer = document.createElement('div');
+  tiltLayer.className = 'tiltup';
+  document.body.appendChild(tiltLayer);
+  var cams = [], tiltSvgs = [];
+  // Place the 3D letters exactly over the logo's letters. Re-run whenever the logo moves or resizes
+  // (fonts settling, iframe sizing, window resize) so the hand-off to the flat logo never jumps.
+  // Each 3D letter is its own GPU layer, and the browser snaps a layer's origin to a whole pixel. So layers sit
+  // on whole pixels and the leftover fraction moves inside the letter's SVG, which is drawn with sub-pixel
+  // precision. Otherwise a letter sitting at x.5 (the F) steps half a pixel and re-weights at the hand-off.
+  function layoutTilt() {
+    ctm = svg.getScreenCTM();
+    var o0 = toPx(bands[0].x0, tb.y), o1 = toPx(bands[bands.length - 1].x1, baseY);
+    var tw = o1.x - o0.x, th = o1.y - o0.y;
+    var L0 = Math.round(o0.x), T0 = Math.round(o0.y), fy = o0.y - T0;
+    Object.assign(tiltLayer.style, { left: L0 + 'px', top: T0 + 'px', width: Math.ceil(tw) + 2 + 'px', height: Math.ceil(th) + 2 + 'px' });
+    cams.forEach(function (cam, i) {
+      var b = bands[i], abs = toPx(b.x0, 0).x, li = Math.round(abs), fx = abs - li, left = li - L0;
+      Object.assign(cam.style, { left: left + 'px', top: '0px', width: Math.ceil((b.x1 - b.x0) * ctm.a) + 2 + 'px', height: Math.ceil(th) + 2 + 'px',
+                                 perspective: (tw * 1.5) + 'px', perspectiveOrigin: (o0.x + tw / 2 - li) + 'px ' + (-1.4 * th) + 'px' });
+      Object.assign(tiltSvgs[i].style, { left: fx + 'px', top: fy + 'px', width: ((b.x1 - b.x0) * ctm.a) + 'px', height: th + 'px' });
+      tiltPanels[i].el.style.transformOrigin = (fx + (b.x1 - b.x0) * ctm.a / 2) + 'px ' + (fy + th) + 'px';
+    });
+  }
+  // Framed wall: the letter outline in wood tan (no studs)
+  var css = getComputedStyle(document.documentElement);
+  var plateW = capH * 0.04;
+  // Inside-only stroke: draw at double width, clipped to the letter itself, so nothing goes past the final shape
+  var frameN = 0;
+  function drawFraming(parent, d) {
+    var id = 'frameClip' + (frameN++);
+    var cp = el('clipPath', { id: id }, parent);
+    var attrs = { fill: 'none', class: 'build', 'stroke-width': plateW * 2, 'stroke-linejoin': 'round', 'clip-path': 'url(#' + id + ')' };
+    if (d) { el('path', { d: d }, cp); attrs.d = d; el('path', attrs, parent); }
+    else { el('use', { href: '#loftcoPath' }, cp); attrs.href = '#loftcoPath'; el('use', attrs, parent); }
+  }
+  var tiltPanels = bands.map(function (b, i) {
+    // One 3D context per letter (same camera for all) so neighbouring panels never cut through each other
+    var cam = document.createElement('div');
+    cam.className = 'tiltCam';
+    cams.push(cam);
+    var d = document.createElement('div');
+    d.className = 'tiltPanel';
+    var fs = document.createElementNS(NS, 'svg');
+    fs.setAttribute('viewBox', [b.x0, tb.y, b.x1 - b.x0, baseY - tb.y].join(' '));
+    fs.setAttribute('preserveAspectRatio', 'none');
+    drawFraming(fs, b.d);
+    d.appendChild(fs);
+    tiltSvgs.push(fs);
+    cam.appendChild(d);
+    tiltLayer.appendChild(cam);
+    return { el: d };
+  });
+  layoutTilt();
+  // Follow the logo every frame while the 3D letters are on screen (covers moves as well as resizes)
+  (function track() {
+    if (tiltLayer.style.visibility !== 'hidden') layoutTilt();
+    requestAnimationFrame(track);
+  })();
+  var sheathCp = el('clipPath', { id: 'wallSheath' }, defs);
+  var wallSheathRect = el('rect', { x: nb.x, y: tb.y - 200, width: 0, height: tb.height + 400 }, sheathCp);
+  panels.forEach(function (P) { P.face.setAttribute('clip-path', 'url(#wallSheath)'); });
+  var slotTop = roofBottom - 4;
+  var slotRect = document.getElementById('slotRect');
+  slotRect.setAttribute('y', slotTop);
+  slotRect.setAttribute('height', nailTop - slotTop + 2);
+  slotRect.setAttribute('x', nb.x);              // letters enter and leave inside the nail's span
+  slotRect.setAttribute('width', nb.width);
+  if (EMBED) svg.setAttribute('viewBox', [nb.x - 30, rb.y - 40, nb.width + 60, nb.y + nb.height - rb.y + 80].join(' '));
+
+  // Measure a string at a font size; returns total width and per-char x offsets
+  var probe = el('text', { 'font-family': FONT, 'font-weight': 700, visibility: 'hidden' }, svg);
+  function measure(str, fs, weight, family) {
+    probe.setAttribute('font-size', fs);
+    probe.setAttribute('font-weight', weight || 700);
+    probe.setAttribute('font-family', family || FONT);
+    probe.textContent = str;
+    var xs = [];
+    for (var i = 0; i < str.length; i++) xs.push(i === 0 ? 0 : probe.getSubStringLength(0, i));
+    return { w: probe.getComputedTextLength(), xs: xs };
+  }
+
+  // Word size: match LOFTCO cap height, shrink if the longest word would overrun the nail
+  var WORDS = ['Better', 'Faster', 'Cheaper'];
+  var fsW = capH / 0.70;
+  var widest = Math.max.apply(null, WORDS.map(function (w) { return measure(w, fsW).w; }));
+  var maxW = nb.width * 0.88;
+  if (widest > maxW) fsW *= maxW / widest;
+  var wordBase = (slotTop + nailTop) / 2 + (fsW * 0.70) / 2;
+
+  // Build words as one <text> per character so each letter can move on its own
+  var wordsG = document.getElementById('words');
+  var words = WORDS.map(function (w) {
+    var m = measure(w, fsW);
+    var x0 = CX - m.w / 2;
+    var g = el('g', {}, wordsG);
+    var chars = [];
+    for (var i = 0; i < w.length; i++) {
+      var cls = 'acc';
+      var t = el('text', { class: 'wordch ' + cls, x: x0 + m.xs[i], y: wordBase, 'font-size': fsW }, g);
+      if (w === 'Cheaper') { t.setAttribute('class', 'acc cheap'); t.setAttribute('font-weight', 700); }  // variable weight, set by attribute
+      t.textContent = w[i];
+      chars.push(t);
+    }
+    return { g: g, chars: chars, x0: x0, xs: m.xs };
+  });
+
+  // "Faster" kit: speed lines that trail the word and pull into it as it brakes
+  var speedG = document.getElementById('speed');
+  var fb = words[1].g.getBBox();
+  var trailX = fb.x + fb.width + fsW * 0.06, trailLen = fsW * 2.2;
+  var streaks = [0.25, 0.5, 0.75].map(function (f, i) {
+    var h = fsW * (0.05 - i * 0.012);
+    return el('rect', { class: 'acc', x: trailX, y: wordBase - fsW * 0.70 * (1 - f) - h / 2, width: 0, height: h, rx: h / 2, opacity: 0 }, speedG);
+  });
+
+  // probe stays (hidden) until the timeline is built; removed at the end
+
+  // Intro props: a Fink truss on the roof's exact outline, the crane rig that sets it, nail-gun streaks
+  var apex = { x: 3843.5, y: rb.y + 12 };
+  var yb = rb.y + rb.height - 20;
+  var L = { x: rb.x + 10, y: yb }, R = { x: rb.x + rb.width - 10, y: yb };
+  function lerp(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+  // Truss in the logo roof's exact outline (straight bottom chord on the base), with DVC-style webs:
+  // king post, diagonals and verticals, no plates (1000 x 215 units, apex 500,10, base y 215)
+  function T(x, y) { return { x: rb.x + (x / 1000) * rb.width, y: rb.y + ((y - 10) / 205) * rb.height }; }
+  function topY(x) { return 10 + Math.abs(x - 500) / 500 * 205; }
+  var FL = 209;                                                     // bottom chord, inset by half its depth
+  var members = [                                                   // webs (chords are the roof outline, below)
+    [T(500, 10), T(500, FL)],                                       // king post
+    [T(335, topY(335)), T(500, FL)], [T(665, topY(665)), T(500, FL)],   // diagonals
+    [T(330, topY(330)), T(330, FL)], [T(670, topY(670)), T(670, FL)],   // verticals
+    [T(330, topY(330)), T(180, FL)], [T(670, topY(670)), T(820, FL)]    // outer diagonals
+  ];
+  var trussG = document.getElementById('truss');
+  var roofCp = el('clipPath', { id: 'roofShape' }, svg.querySelector('defs'));
+  el('path', { d: roof.querySelector('path').getAttribute('d') }, roofCp);
+  trussG.setAttribute('clip-path', 'url(#roofShape)');      // members stay inside the final roof outline
+  // Same visible stroke as the letter framing: chords = the roof outline stroked inside-only, webs at that width
+  el('path', { d: roof.querySelector('path').getAttribute('d'), class: 'member', 'stroke-width': plateW * 2, 'stroke-linejoin': 'miter' }, trussG);
+  members.forEach(function (m) {
+    el('line', { x1: m[0].x, y1: m[0].y, x2: m[1].x, y2: m[1].y, 'stroke-width': plateW, 'stroke-linecap': 'butt', class: 'member' }, trussG);
+  });
+  var Q1 = T(250, topY(250)), Q2 = T(750, topY(750));               // sling pick points on the top chords
+  var hook = { x: apex.x, y: rb.y - 520 };
+  var rigG = document.getElementById('rig');
+  var slings = el('g', {}, rigG);
+  var nailMidY = nb.y + nb.height * 0.48;
+  var nailStreaks = [-0.12, 0.12].map(function (f) {
+    return el('rect', { x: nb.x - 5200, y: nailMidY + f * nb.height - 9, width: 5200, height: 18, rx: 9, class: 'acc', opacity: 0 },
+              document.getElementById('nailStreaks'));
+  });
+  var roofClipRect = document.getElementById('roofClipRect');
+
+  // ── Timeline ──
+  gsap.set(nail, { svgOrigin: CX + " " + nb.y });
+  var E = { snap: 'expo.out', lift: 'power3.in', settle: 'power4.out' };
+  var rise = fsW * 0.95;                        // distance a letter travels to clear the slot
+  var tl = gsap.timeline({ paused: true });
+  var phaseEl = document.getElementById('phase');
+  var phaseN = 0;
+  function phase(name) { tl.addLabel(name + '#' + (phaseN++)); }
+
+  // Resting state for every moving part
+  function resetState() {
+    gsap.set(roof, { y: 0 });
+    gsap.set(nail, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    gsap.set(loftco, { x: 0, y: 0 });
+    words.forEach(function (w) { gsap.set(w.chars, { x: 0, y: rise, skewX: 0, rotation: 0, scale: 1, opacity: 1 }); });
+    gsap.set(words[2].chars, { attr: { 'font-weight': 700, 'stroke-width': 0 } });
+    gsap.set(streaks, { opacity: 0, x: 0, attr: { width: 0 } });
+    gsap.set('#world', { y: 0 });
+  }
+
+  // 1 · Loop begins on the still Loftco mark; roof and nail never move
+  resetState();                                 // rest state first; intro fromTo()s then set their own start frames
+  // 0 · Intro (plays once), in building order: slab, walls, trusses, then everything sheathed in Loftco blue
+  var nailPath = nail.querySelector('path');
+  tl.fromTo(trussG, { opacity: 1 }, { opacity: 1, duration: 0.01 }, 0);
+  //   nail = slab: already in place, blue-gray until the sheathing pass (no motion)
+  var GRAY = css.getPropertyValue('--legacy').trim() || '#969ba5', BLUE = css.getPropertyValue('--accent').trim() || '#002b7f';
+  tl.fromTo(nailPath, { fill: GRAY }, { fill: GRAY, duration: 0.01 }, 0);
+  //   LOFTCO = walls: framed panels lying on the deck, tilted up on their bottom plates down the line
+  var standDone = 0;
+  function slabGapPx() { return (nailTop - baseY) * svg.getScreenCTM().d; }   // flat panels lie on the slab, then rise to the baseline
+  tiltPanels.forEach(function (T, i) {
+    var at = 0.2 + i * 0.07, d = 0.7;            // L, then O right after L starts, then F...
+    tl.fromTo(T.el, { rotationX: 90, y: slabGapPx }, { rotationX: 0, y: 0, duration: d, ease: 'power2.inOut', force3D: true }, at);   // stay 3D to the end: no re-raster jerk
+    standDone = Math.max(standDone, at + d);
+  });
+  tl.fromTo(tiltLayer, { autoAlpha: 1 }, { autoAlpha: 1, duration: 0.01 }, 0);
+  //   roof = trusses: lowered onto the walls (no crane shown; Loftco doesn't offer crane service)
+  var rig = [rigG, trussG];
+  gsap.set(rig, { svgOrigin: hook.x + ' ' + hook.y });
+  var screenTop = (0 - ctm.f) / ctm.d;           // top of the window, in logo units (the stage can extend past the viewBox)
+  var trussFrom = Math.min(-4200, screenTop - (rb.y + rb.height) - 300);
+  tl.fromTo(rig, { y: trussFrom }, { y: 0, duration: 1.25, ease: 'power2.inOut' }, 0);
+  //   finish: walls, roof and slab all fade from blue-gray to Loftco blue together (same treatment as the nail)
+  var S = standDone + 0.1, SD = 0.65;
+  var solids = [roof].concat(panels.map(function (P) { return P.face; }));
+  tl.set(roofClipRect, { attr: { x: -2000, width: 20000 } }, 0);      // no wipe: full shapes, revealed by opacity
+  tl.set(wallSheathRect, { attr: { x: -2000, width: 20000 } }, 0);
+  tl.fromTo(solids, { opacity: 0 }, { opacity: 1, duration: SD, ease: 'power1.inOut' }, S);
+  tl.to(nailPath, { fill: BLUE, duration: SD, ease: 'power1.inOut' }, S);
+  tl.to(trussG, { opacity: 0, duration: SD, ease: 'power1.inOut' }, S);
+  tl.to(tiltLayer, { autoAlpha: 0, duration: SD, ease: 'power1.inOut' }, S);   // the 3D outlines themselves fade as the blue comes in: no hand-off, no doubled strokes
+  tl.set(nailPath, { clearProps: 'fill' }, S + SD + 0.2);
+  tl.to({}, { duration: 0.5 });
+
+  tl.addLabel('loop');
+  phase('Loftco');
+  tl.to({}, { duration: 1.3 });
+
+  // Everything travels right to left between roof and nail, as in the shipped loop
+  var enter = nb.width * 1.05;                  // start fully past the right edge of the slot
+  var exit = -nb.width;                         // fully off to the left of the slot
+  var tilt = [-14, 10, -7, 12, -11, 8];         // Better arrives clearly out of plumb...
+  var drop = [0.07, -0.05, 0.08, -0.04, 0.06, -0.06];   // ...and out of level (fraction of the word size)
+
+  // 3 · LOFTCO slides out to the left
+  tl.fromTo(loftco, { x: 0, y: 0 }, { x: exit, duration: 0.6, ease: E.lift, immediateRender: false });
+
+  // 4 · Better — lands crooked and uneven, sits wrong for a beat, then every letter snaps plumb and level at once
+  phase('Better');
+  tl.fromTo(words[0].chars,
+            { x: enter, opacity: 0, transformOrigin: '50% 100%',
+              rotation: function (i) { return tilt[i % tilt.length]; },
+              y: function (i) { return drop[i % drop.length] * fsW; } },
+            { x: 0, opacity: 1, duration: 0.45, ease: 'power3.out', stagger: 0.025 }, '-=0.2');
+  tl.to(words[0].chars, { rotation: 0, y: 0, duration: 0.18, ease: 'back.out(2.5)' }, '<0.8');   // the fix: one crisp move after a visible beat
+  tl.to({}, { duration: 0.3 });
+  tl.to(words[0].chars, { x: exit, duration: 0.4, ease: E.lift, stagger: 0.018 });
+
+  // 5 · Faster — races in with tops trailing (inertia) and speed lines behind; on the stop the tops tip
+  //     just past upright and settle: ~15 deg lean, ~4 deg tip. No motion blur. (Not Better's snap: keep them distinct.)
+  phase('Faster');
+  var fIn = 0.3, fEase = 'power4.out', fAt = tl.duration() - 0.15;
+  tl.fromTo(words[1].chars, { y: 0, x: enter, skewX: 0, rotation: 15, transformOrigin: '50% 100%', opacity: 0 },
+            { x: 0, opacity: 1, duration: fIn, ease: fEase, stagger: 0.006 }, fAt);
+  tl.to(words[1].chars, { rotation: -4, duration: 0.08, ease: 'power2.out', stagger: 0.006 }, fAt + 0.12);  // brake: tops carry forward
+  tl.to(words[1].chars, { rotation: 0, duration: 0.16, ease: 'sine.inOut', stagger: 0.006 }, fAt + 0.2);    // settle upright
+  tl.fromTo(streaks, { x: enter, attr: { width: trailLen }, opacity: 0.85 },
+            { x: 0, attr: { width: 0 }, opacity: 0, duration: fIn, ease: fEase, stagger: 0.02 }, fAt);
+  tl.set(streaks, { opacity: 0 }, '>');
+  tl.to({}, { duration: 0.6 });                    // settled read time before Faster leaves
+  tl.to(words[1].chars, { x: exit, rotation: 12, duration: 0.18, ease: E.lift, stagger: 0.005 });       // take-off: tops lag
+
+  // 6 · Cheaper — comes in fat (Black weight, as wide as fits), holds, then the whole word slims to Bold in one exhale
+  phase('Cheaper');
+  var cw = words[2];
+  var fat = measure(WORDS[2], fsW, 900, 'Outfit');
+  // Fat = puffed, not stretched: Black weight plus a round-joined outline that thickens every stroke evenly
+  // (stretching exaggerates the flared terminals into fake serifs). Letters spread apart so they don't merge.
+  var fatSX = 1;
+  var nC = cw.chars.length;
+  var puff = Math.min(fsW * 0.05, (nb.width * 0.96 - fat.w) / nC);
+  var fatX0 = CX - (fat.w + puff * (nC - 1)) / 2;
+  var fatDx = cw.chars.map(function (c, i) { return fatX0 + fat.xs[i] + puff * i - (cw.x0 + cw.xs[i]); });
+  // One beat: the whole word slides in fat and stops, holds visibly overweight, then slims as one smooth exhale
+  var cAt = tl.duration() - 0.1;
+  tl.fromTo(cw.chars,
+            { y: 0, x: function (i) { return enter + fatDx[i]; }, opacity: 0, scaleX: fatSX, scaleY: 1,
+              transformOrigin: '50% 100%', attr: { 'font-weight': 900, 'stroke-width': puff } },
+            { x: function (i) { return fatDx[i]; }, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.015 }, cAt);
+  tl.to(cw.chars, { x: 0, scaleX: 1, attr: { 'font-weight': 700, 'stroke-width': 0 }, duration: 0.35, ease: 'sine.inOut' }, cAt + 0.5 + 0.09 + 0.1);   // short fat hold, then exhale
+  tl.to({}, { duration: 0.4 });
+
+  // 7 · Back to Loftco: Cheaper slides off to the left, LOFTCO comes in from the right
+  phase('Loftco');
+  var back = tl.duration();
+  tl.to(words[2].chars, { x: exit, duration: 0.4, ease: E.lift, stagger: 0.015 }, back);
+  tl.fromTo(loftco, { x: enter, y: 0 }, { x: 0, duration: 0.8, ease: E.settle, immediateRender: false }, back + 0.6);
+  tl.to({}, { duration: 0.6 });
+
+  // ── Playback ──
+  // Two independent animations, picked per placement with ?mode=
+  //   build: the construction opening only, ends on the still logo
+  //   loop:  Better / Faster / Cheaper only (no opening)
+  //   both:  opening, then the loop
+  var loopStart = tl.labels.loop;
+  var legacyIntro = params.get('intro');
+  var MODE = params.get('mode') || (EMBED ? (legacyIntro === '1' || legacyIntro === 'once' ? 'both' : 'loop') : 'both');
+  if (MODE === 'build') tl.addPause(loopStart, notifyDone);   // opening-only: stop on the logo and report it
+  var span = MODE === 'build' ? [0, loopStart] : MODE === 'loop' ? [loopStart, tl.duration()] : [0, tl.duration()];
+  var startAt = MODE === 'loop' ? loopStart : 0;
+  var scrub = document.getElementById('scrub');
+  var playBtn = document.getElementById('btn-play');
+  var scrubbing = false;
+  document.querySelectorAll('[data-mode]').forEach(function (b) {
+    b.setAttribute('aria-pressed', b.dataset.mode === MODE);
+    b.addEventListener('click', function () {
+      var q = new URLSearchParams(location.search); q.set('mode', b.dataset.mode); location.search = q.toString();
+    });
+  });
+
+  tl.eventCallback('onUpdate', function () {
+    if (!scrubbing) scrub.value = Math.round((tl.time() - span[0]) / (span[1] - span[0]) * 1000);
+    var lbl = tl.currentLabel() || '';
+    if (lbl.indexOf('#') > 0) phaseEl.textContent = lbl.split('#')[0];
+  });
+  // Static hold between loops (Lot Status header uses ?hold=30)
+  var holdTimer = null;
+  function playLoopAfterHold() {
+    if (holdTimer) holdTimer.kill();
+    holdTimer = HOLD > 0 ? gsap.delayedCall(HOLD, function () { tl.play(loopStart); }) : null;
+    if (!holdTimer) tl.play(loopStart);
+  }
+  // ?loops=N: stop on LOFTCO after N passes of the loop and tell the host page (website hero reveals its motto then)
+  var LOOPS = parseInt(params.get('loops') || '0', 10) || 0, loopsDone = 0;
+  function notifyDone() {
+    try { window.parent.postMessage({ loftcoLogo: 'done' }, '*'); } catch (e) {}
+  }
+  tl.eventCallback('onComplete', function () {
+    loopsDone++;
+    if (LOOPS && loopsDone >= LOOPS) { notifyDone(); return; }
+    playLoopAfterHold();
+  });
+
+  scrub.addEventListener('input', function () {
+    scrubbing = true;
+    tl.pause();
+    tl.seek(span[0] + (span[1] - span[0]) * scrub.value / 1000);
+    setPlaying(false);
+  });
+  scrub.addEventListener('change', function () { scrubbing = false; });
+
+  function setPlaying(on) {
+    playBtn.textContent = on ? 'Pause' : 'Play';
+    playBtn.setAttribute('aria-pressed', on ? 'false' : 'true');
+  }
+  playBtn.addEventListener('click', function () {
+    if (tl.paused() || !tl.isActive()) {
+      var atEnd = MODE === 'build' ? tl.time() >= loopStart - 0.001 : tl.progress() === 1;
+      if (atEnd) tl.play(startAt); else tl.play();
+      setPlaying(true);
+    } else { tl.pause(); setPlaying(false); }
+  });
+  document.getElementById('btn-replay').addEventListener('click', function () {
+    if (startAt === 0) tl.restart(); else tl.play(startAt);
+    setPlaying(true);
+  });
+  document.querySelectorAll('[data-speed]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      tl.timeScale(parseFloat(b.dataset.speed));
+      document.querySelectorAll('[data-speed]').forEach(function (o) { o.setAttribute('aria-pressed', o === b); });
+    });
+  });
+  document.querySelectorAll('button[data-theme]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.documentElement.setAttribute('data-theme', b.dataset.theme);
+      document.querySelectorAll('button[data-theme]').forEach(function (o) { o.setAttribute('aria-pressed', o === b); });
+    });
+  });
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  tl.seek(loopStart).pause();                     // rest on the finished mark
+  if (EMBED) {
+    var seen = false;
+    if (legacyIntro === 'once') { try { seen = sessionStorage.getItem('loftcoIntroSeen') === '1'; sessionStorage.setItem('loftcoIntroSeen', '1'); } catch (e) {} }
+    if (!reduced) {
+      if (MODE === 'loop' || seen) playLoopAfterHold();
+      else tl.play(0);                            // build or both
+    }
+  } else if (reduced) {
+    setPlaying(false);                            // Play runs it on request
+  } else {
+    tl.play(startAt);
+    setPlaying(true);
+  }
+
+  svg.removeChild(probe);
+  window.__mark = { tl: tl, geom: { rb: rb, nb: nb, tb: tb, fsW: fsW } };
+})();
+</script>
+</body>
+</html>

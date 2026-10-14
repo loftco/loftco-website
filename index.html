@@ -173,93 +173,20 @@
       width: 100%;
     }
 
-    .bfc-wrapper {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      transition: opacity 0.5s ease;
-    }
-
-    .bfc {
-      display: flex;
-      align-items: baseline;
-      gap: 0.12em;
-      cursor: default;
-      user-select: none;
-      font-size: clamp(3rem, 7.5vw, 90px);
-      transition: gap 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-      opacity: 0;
-    }
-
-    .word-group {
-      display: flex;
-      align-items: baseline;
-      position: relative;
-    }
-
-    .word-group .initial {
-      font-family: 'Outfit', sans-serif;
-      font-size: clamp(3rem, 7.5vw, 90px);
-      font-weight: 700;
-      color: #fff;
-      line-height: 1;
-      letter-spacing: 0.01em;
-      cursor: pointer;
-      position: relative;
-      z-index: 2;
-    }
-
-    .word-group .tail {
-      font-family: 'Outfit', sans-serif;
-      font-size: clamp(3rem, 7.5vw, 90px);
-      font-weight: 700;
-      color: #fff;
-      line-height: 1;
-      letter-spacing: 0.01em;
-      display: inline-block;
-      max-width: 0;
-      overflow: hidden;
-      opacity: 0;
-      transition: max-width 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-                  opacity 0.5s ease;
-      white-space: nowrap;
-    }
-
-    .word-group:hover .tail { opacity: 1; }
-
-    .logo-roof, .logo-nail {
-      height: auto;
-      flex-shrink: 0;
-      align-self: center;
-    }
-
-    .logo-roof { margin-bottom: 0.1rem; }
-    .logo-nail { margin-top: 0.05rem; }
-    .logo-roof path, .logo-nail path { fill: #fff; }
-    .logo-roof.hidden, .logo-nail.hidden { display: none; }
-
-    .loftco-layered {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -53%);
-      width: clamp(16rem, 40vw, 28rem);
-      aspect-ratio: 8600 / 2720;
+    .hero-logo {
+      --logo-w: clamp(17rem, 42.3vw, 29.6rem);
+      border: 0;
+      display: block;
+      width: var(--logo-w);
+      aspect-ratio: 9100 / 3650;
+      /* keep hero text where it sat with the old logo (old row height ~1.26 x font size) */
+      margin-block: calc((clamp(3rem, 7.5vw, 90px) * 1.26 - var(--logo-w) * 0.401) / 2);
+      background: transparent;
       pointer-events: none;
+      position: relative;
       z-index: 15;
-      display: none;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
     }
-
-    .loftco-layered.visible { display: block; }
-
-    .loftco-layered svg {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-    }
-
-    .loftco-layered svg path { fill: #fff; }
 
     /* Hero content below animation */
     .hero-content {
@@ -287,14 +214,19 @@
       color: #fff;
       letter-spacing: 0.1em;
       margin-bottom: 0.5rem;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.75);
+      opacity: 0;                      /* holds its space; fades in once the logo has said it */
+      transition: opacity 0.8s ease;
     }
+    .hero-motto.shown { opacity: 1; }
 
     .hero-identity {
       font-family: var(--font-display);
       font-size: clamp(0.9rem, 1.3vw, 1.1rem);
       letter-spacing: 0.2em;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.9);
       margin-bottom: 0.25rem;
+      text-shadow: 0 1px 5px rgba(0,0,0,0.75);
     }
 
     .hero-cta {
@@ -674,7 +606,8 @@
     @media (prefers-reduced-motion: reduce) {
       .reveal { opacity: 1; transform: none; transition: none; }
       .reveal-stagger > * { opacity: 1; transform: none; transition: none; }
-      .hero-content { opacity: 1; transform: none; transition: none; }
+      .hero-content { transition: none; }
+      .hero-content.visible { transform: none; }
       html { scroll-behavior: auto; }
     }
   </style>
@@ -709,6 +642,13 @@
     <script>
       (function() {
         var v = document.getElementById('hero-video');
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          v.removeAttribute('autoplay');
+          v.removeAttribute('loop');
+          v.poster = 'assets/images/framing-1.jpg';
+          v.load();
+          return;
+        }
         var src = window.innerWidth <= 768
           ? 'assets/videos/itom-ae-mobile.mp4'
           : 'assets/videos/itom-ae-desktop.mp4';
@@ -717,53 +657,25 @@
         s.type = 'video/mp4';
         v.appendChild(s);
         v.load();
+        v.play().catch(function() {
+          // Safari may block autoplay — retry on first user interaction
+          var kick = function() {
+            v.play();
+            document.removeEventListener('touchstart', kick);
+            document.removeEventListener('scroll', kick);
+          };
+          document.addEventListener('touchstart', kick, { once: true });
+          document.addEventListener('scroll', kick, { once: true });
+        });
       })();
     </script>
 
-    <!-- BFC Variant Animation -->
-    <div class="hero-anim">
-      <div class="bfc-wrapper" id="bfc-wrapper" style="display: inline-flex; flex-direction: column; align-items: center; position: relative;">
-        <svg class="logo-roof hidden" id="logo-roof" viewBox="1890 -1852 3922 556" xmlns="http://www.w3.org/2000/svg">
-          <path d="m 3843.5264,-1849.8197 -1951.1789,538.9004 0,13.0408 3917.3372,0 -0.1749,-12.9527 c -654.5359,-181.7197 -1309.5471,-361.5304 -1965.9834,-538.9885 z" />
-        </svg>
-
-        <div class="bfc" id="bfc">
-          <div class="word-group" id="group-b">
-            <span class="initial">B</span>
-            <span class="tail" id="tail-b">etter</span>
-          </div>
-          <span class="dot" style="display:none">.</span>
-          <div class="word-group" id="group-f">
-            <span class="initial">F</span>
-            <span class="tail" id="tail-f">aster</span>
-          </div>
-          <span class="dot" style="display:none">.</span>
-          <div class="word-group" id="group-c">
-            <span class="initial">C</span>
-            <span class="tail" id="tail-c">heaper</span>
-          </div>
-        </div>
-
-        <svg class="logo-nail hidden" id="logo-nail" viewBox="-440 380 8600 430" xmlns="http://www.w3.org/2000/svg">
-          <path d="m -434.19436,332.36358 0,261.69626 c 0,143.95157 0.53803,262.35322 1.28666,263.26706 0.74798,0.91412 59.43644,0.94237 59.43644,0.94237 l 59.17946,-133.51847 4060.7448,0 c 2721.405,0 4061.8286,-0.86847 4064.346,-2.51319 2.0655,-1.35004 74.5225,-28.63669 161.0708,-60.94751 86.5481,-32.31065 159.2298,-59.89473 161.3293,-61.26143 3.0863,-2.01176 3.3077,-2.8568 1.0289,-4.39801 -1.55,-1.04751 -73.5703,-33.43907 -159.7852,-71.94271 -86.2157,-38.5039 -159.1347,-71.65622 -162.1004,-73.51407 -4.5896,-2.87456 -610.0091,-3.14154 -4066.1469,-3.14154 l -4060.4873,0 -60.46566,-114.04058 z" />
-        </svg>
-
-        <div class="loftco-layered" id="loftco-layered">
-          <svg id="layer-roof" viewBox="-440 -1852 8600 2720" xmlns="http://www.w3.org/2000/svg">
-            <path d="m 3843.5264,-1849.8197 -1951.1789,538.9004 0,13.0408 3917.3372,0 -0.1749,-12.9527 c -654.5359,-181.7197 -1309.5471,-361.5304 -1965.9834,-538.9885 z" />
-          </svg>
-          <svg id="layer-text" viewBox="-440 -1852 8600 2720" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 1430.1154,166.37095 C 1302.6195,160.49599 1164.3096,130.2217 1078.0723,89.312948 1045.6562,73.935605 1001.3013,44.547453 974.18187,20.478616 944.09734,-6.2220376 897.74781,-60.423654 875.95214,-94.391693 c -7.31383,-11.398577 -16.53202,-25.397727 -20.48513,-31.109777 -15.127,-21.85963 -34.82769,-69.67929 -42.93017,-104.2067 -30.90504,-131.69337 -40.46215,-250.15017 -27.2446,-337.68372 1.51865,-10.05729 3.64606,-24.86904 4.72738,-32.91487 1.08161,-8.04608 7.0375,-29.75546 13.23531,-48.24318 24.35308,-72.64224 62.98642,-134.15033 117.58673,-187.20939 67.6481,-65.73834 146.08804,-109.14616 260.58244,-144.20329 18.4051,-5.63551 101.4202,-23.03298 130.4412,-27.33638 130.1451,-19.2994 318.9102,-19.3517 451.7097,-0.124 90.1912,13.05775 155.6693,32.09744 222.4383,64.67957 130.6602,63.76008 217.5144,165.43402 265.5765,310.89098 9.5914,29.02887 23.1414,103.87411 28.6635,158.33005 3.929,38.74328 3.879,108.07139 -0.1015,142.63171 -15.5724,135.1654 -61.0781,229.24246 -153.0367,316.382283 -56.8638,53.884701 -120.5039,91.24304 -209.3687,122.905637 -41.495,14.7847 -105.8682,32.27849 -126.7838,34.45416 -5.3639,0.5583 -20.7243,3.412 -34.1341,6.34188 -77.2763,16.88501 -196.7493,23.16683 -326.7117,17.17824 z m 145.0701,-224.239237 c 137.3396,-14.245268 231.5624,-57.943463 280.2399,-129.969103 19.1942,-28.40095 32.0409,-63.97944 42.0089,-116.34044 4.7631,-25.01967 5.3358,-36.32321 5.4915,-108.39168 0.1862,-86.21922 -0.3814,-92.05528 -14.3073,-146.9906 -9.0903,-35.86106 -33.2772,-87.72125 -53.5853,-114.89427 -43.9434,-58.79818 -104.0325,-93.59313 -190.4488,-110.28023 -26.6466,-5.14555 -35.8124,-5.63387 -105.9713,-5.648 -61.0891,-0.0282 -83.2863,0.89216 -108.4977,4.42088 -117.0766,16.38687 -185.6062,52.9212 -227.7642,121.42567 -11.3564,18.45357 -15.6798,27.69633 -30.6133,65.44822 -12.523,31.65705 -21.9214,107.70873 -19.5845,158.47977 4.3721,95.0063 13.0895,144.81074 34.7705,198.6497 19.5577,48.56721 40.0795,78.4095 75.775,110.19029 18.4542,16.43025 28.7317,23.34252 50.2048,33.766383 47.851,23.228627 85.3478,31.470156 186.6992,41.034315 18.8952,1.783398 53.7029,1.368346 75.5826,-0.900905 z M 7065.8966,166.26608 c -140.3301,-6.67602 -299.9172,-45.38885 -379.8382,-92.141583 -60.3799,-35.320893 -123.7152,-95.196925 -164.9281,-155.919557 -30.335,-44.69461 -33.8375,-50.476 -45.7366,-75.49731 -16.1904,-34.0453 -24.8181,-61.56596 -34.8252,-111.08473 -24.7991,-122.71475 -30.5016,-214.91192 -18.656,-301.63194 12.1122,-88.67209 46.0701,-163.64554 106.6274,-235.41313 50.743,-60.13745 128.3202,-113.97538 213.4167,-148.10955 65.6247,-26.32365 103.2693,-35.80483 203.2517,-51.19148 131.422,-20.2251 334.4078,-19.795 466.9055,0.989 112.0353,17.57425 198.5886,49.11982 273.5102,99.6843 68.1974,46.02682 103.1562,84.44252 159.924,175.74014 18.1374,29.17048 46.1282,100.90643 51.372,131.66002 1.2576,7.37535 4.5354,24.38165 7.284,37.79144 11.66,56.88255 13.4581,77.28335 13.6459,154.82239 0.1832,75.86679 -0.2031,80.57861 -10.9845,134.0982 -9.4534,46.92331 -28.0527,99.8507 -47.2681,134.50925 -10.3932,18.74596 -42.9397,64.95025 -58.1029,82.484944 -25.5494,29.545977 -70.3402,69.678832 -99.8442,89.460734 -32.9701,22.105285 -98.7703,54.713082 -141.229,69.987002 -35.7123,12.8462 -93.321,29.13456 -120.7893,34.15128 -10.4413,1.90715 -29.4075,5.77455 -42.147,8.5939 -76.8504,17.00912 -199.4744,23.30214 -331.5883,17.01668 z m 170.6703,-227.597655 c 64.2696,-8.899889 116.3836,-23.958122 160.8254,-46.470815 25.424,-12.87892 63.1111,-42.22725 78.4631,-61.10206 30.8664,-37.94907 49.1158,-85.40525 58.5427,-152.23457 2.1417,-15.18508 3.2693,-48.35372 3.2738,-96.30669 0,-60.79224 -0.7361,-76.85025 -4.3935,-95.08785 -11.8079,-58.88921 -14.8262,-68.32205 -38.5181,-120.3768 -15.3383,-33.70041 -57.2966,-82.27883 -89.382,-103.48411 -36.101,-23.85909 -80.975,-40.70036 -132.2385,-49.62894 -35.7264,-6.22241 -158.7782,-6.1908 -207.2432,0.0537 -84.7432,10.91819 -145.8041,34.8816 -191.2448,75.05391 -15.8841,14.04252 -38.3656,44.63063 -48.9017,66.536 -29.3102,60.93859 -38.2972,105.92842 -38.302,191.74062 0,80.53315 9.4796,143.89408 29.6906,198.36468 18.6902,50.37139 35.4613,76.44842 72.5364,112.78604 22.8931,22.43769 31.6687,29.25412 49.561,38.49488 35.945,18.564999 67.8491,28.904212 112.6881,36.519484 17.3705,2.949925 31.8287,4.624983 83.4598,9.671309 17.3142,1.691732 74.8626,-0.883683 101.1829,-4.528306 z M 471.92299,156.58128 C 306.09904,155.38433 263.83314,154.40333 237.86076,151.1487 114.51244,135.69154 22.981191,107.49278 -41.295551,65.146799 -60.607834,52.423784 -91.101766,26.713608 -100.59205,15.152644 c -34.86013,-42.467442 -57.08468,-75.971943 -78.77237,-118.751844 -19.84958,-39.15413 -25.55113,-54.1711 -32.6236,-85.92318 -4.83509,-21.70628 -4.88811,-27.78481 -3.66016,-419.87571 0.68516,-218.81732 2.14968,-398.75381 3.25413,-399.85861 2.74124,-2.7411 339.78274,-2.3891 342.52961,0.358 1.24487,1.2447 2.5477,161.85405 3.05065,376.0873 0.95751,407.89058 0.2844,388.57166 14.89146,427.4845 9.36526,24.94823 25.45891,48.45039 49.26183,71.9387 31.52948,31.11253 63.95312,47.797433 113.83187,58.577127 25.95411,5.609626 66.62895,6.852503 378.23509,11.559041 91.23086,1.377929 118.22791,2.483487 120.68802,4.942457 2.47817,2.476823 3.32942,26.003761 3.90434,107.900798 l 0.73508,104.733747 -6.25478,2.37832 c -3.62322,1.37774 -33.16891,2.15928 -70.22213,1.85822 -35.18213,-0.28593 -155.03251,-1.17727 -266.334,-1.98023 z m 1951.54851,-2.4709 c -5.0388,-5.03922 -5.0552,-5.64142 -3.0482,-112.764888 1.1098,-59.234367 1.6187,-150.488072 1.1309,-202.786112 -0.9958,-106.73228 3.5165,-350.34685 7.1796,-387.66518 1.3165,-13.4098 3.4096,-34.80453 4.6513,-47.54394 8.6548,-88.78963 52.4337,-186.24817 111.8786,-249.06037 74.037,-78.22969 168.7359,-122.04372 325.798,-150.73533 8.0458,-1.46975 38.2179,-5.56436 67.0491,-9.09916 l 52.4205,-6.427 332.3862,-0.9429 c 259.6932,-0.7367 333.1722,-0.2903 335.9817,2.0413 3.1162,2.5861 3.3731,17.31783 1.9273,110.46841 -0.9714,62.56227 -2.6511,108.726 -4.0192,110.45528 -1.8212,2.30224 -74.897,3.14391 -324.5606,3.73856 l -322.2101,0.76724 -20.7244,5.48863 c -110.2062,29.1865 -172.5522,82.46471 -194.3108,166.0482 -8.5911,33.00197 -10.7991,53.61144 -6.4857,60.53419 l 3.4185,5.4858 431.0305,0 c 341.086,0 431.8565,0.63611 434.9911,3.04778 3.5037,2.6958 4.1597,15.59111 5.6813,111.68184 1.2885,81.36134 1.0015,109.97688 -1.1426,113.98325 l -2.863,5.34939 -433.6059,0 c -389.2122,0 -433.9289,0.38826 -436.7524,3.79015 -2.5163,3.03193 -3.1854,49.65354 -3.346,233.038991 -0.1947,223.997949 -0.3094,229.330119 -4.9336,232.711129 -3.9827,2.91238 -32.2892,3.46047 -178.5944,3.46047 -172.7812,0 -173.8931,-0.0282 -178.9277,-5.06573 z m 1798.3251,3.02182 c -4.0231,-0.45424 -8.5117,-1.8153 -9.9749,-3.02519 -1.9045,-1.57447 -2.6747,-134.50724 -2.7105,-467.86193 -0.039,-371.00852 -0.6749,-466.41558 -3.124,-469.36659 -2.7102,-3.26538 -30.576,-3.70386 -235.533,-3.70386 -227.3298,0 -232.5146,-0.10433 -234.9825,-4.71582 -1.6269,-3.03922 -2.5242,-41.67061 -2.5242,-108.65811 0,-66.98695 0.8973,-105.6184 2.5242,-108.6577 2.4855,-4.6443 12.3753,-4.7161 651.8264,-4.7161 625.9376,0 649.4485,0.1596 653.3377,4.4588 3.6251,4.0055 4.0356,15.26728 4.0356,110.76181 0,93.38794 -0.4659,106.76819 -3.8313,110.13399 -3.4309,3.43058 -28.6643,3.83124 -241.2329,3.83124 -174.0048,0 -237.8568,0.73679 -239.1063,2.75848 -0.9374,1.51723 -1.7411,211.67468 -1.7856,467.01723 -0.061,356.146845 -0.7594,465.18729 -2.9956,468.24546 -2.6444,3.61646 -17.9,4.00126 -164.7618,4.15444 -89.0158,0.0959 -165.1385,-0.20301 -169.1613,-0.65615 z m 1369.8805,-1.73211 c -70.9291,-7.74384 -160.8711,-26.76752 -216.6364,-45.8214 -78.4309,-26.797417 -140.7221,-66.375624 -187.121,-118.8918862 -37.8392,-42.8290088 -46.853,-55.2821158 -76.1174,-105.1612838 -44.3074,-75.51908 -73.3888,-191.79583 -74.5541,-298.09503 -0.9062,-82.66572 9.2399,-166.91602 27.1344,-225.30698 29.9877,-97.85418 80.0386,-177.51111 146.4905,-233.1425 89.0159,-74.521 191.6977,-115.76979 337.8338,-135.71271 37.5091,-5.1188 46.7753,-5.2707 377.6383,-6.1969 311.3907,-0.8717 339.5116,-0.623 343.1693,3.0346 3.5703,3.5704 3.9838,15.57559 3.9838,115.69435 0,102.81582 -0.3396,112.118 -4.2668,116.82873 l -4.2665,5.11848 -313.3025,0.80478 c -307.4545,0.78974 -313.7118,0.89971 -335.2452,5.88928 -68.5447,15.88187 -116.6702,45.48078 -152.6073,93.8591 -28.2664,38.05223 -42.1063,79.09573 -53.6696,159.16572 -4.6373,32.11264 -5.0937,42.81571 -3.7416,87.77346 2.6431,87.90341 14.2548,148.5095 39.4758,206.04246 11.5805,26.41656 20.0966,38.75403 40.5601,58.759 40.0536,39.15642 90.5054,64.006336 147.5167,72.658279 11.9526,1.814198 115.1711,2.67301 324.2739,2.698429 168.7067,0.02825 308.1641,0.941185 309.9049,2.045647 2.4906,1.579478 3.4688,26.889004 4.5859,118.622094 1.3509,110.917701 1.2029,116.772991 -3.0218,119.862411 -6.4763,4.73552 -634.2857,4.24665 -678.0172,-0.52813 z" />
-          </svg>
-          <svg id="layer-nail" viewBox="-440 -1852 8600 2720" xmlns="http://www.w3.org/2000/svg">
-            <path d="m -434.19436,332.36358 0,261.69626 c 0,143.95157 0.53803,262.35322 1.28666,263.26706 0.74798,0.91412 59.43644,0.94237 59.43644,0.94237 l 59.17946,-133.51847 4060.7448,0 c 2721.405,0 4061.8286,-0.86847 4064.346,-2.51319 2.0655,-1.35004 74.5225,-28.63669 161.0708,-60.94751 86.5481,-32.31065 159.2298,-59.89473 161.3293,-61.26143 3.0863,-2.01176 3.3077,-2.8568 1.0289,-4.39801 -1.55,-1.04751 -73.5703,-33.43907 -159.7852,-71.94271 -86.2157,-38.5039 -159.1347,-71.65622 -162.1004,-73.51407 -4.5896,-2.87456 -610.0091,-3.14154 -4066.1469,-3.14154 l -4060.4873,0 -60.46566,-114.04058 z" />
-          </svg>
-        </div>
-      </div>
+    <!-- Animated Loftco logo (self-contained, no outside requests) -->
+      <iframe class="hero-logo" src="assets/logo/loftco-motion.html?embed=1&mode=both&color=white&loops=1" title="Loftco" aria-label="Loftco logo" tabindex="-1"></iframe>
 
       <!-- Hero text appears after logo animation -->
       <div class="hero-content" id="hero-content">
-        <p class="hero-motto">Better. Faster. Cheaper.</p>
+        <p class="hero-motto" id="hero-motto">Better. Faster. Cheaper.</p>
         <p class="hero-identity">Arizona's Premier Full-Service Turn-Key Framer</p>
         <a href="#contact" class="hero-cta">Contact Us</a>
       </div>
@@ -953,208 +865,21 @@
 
     document.querySelectorAll('.reveal, .reveal-stagger').forEach(function(el) { observer.observe(el); });
 
-    // ── BFC ANIMATION (Loftco variant, white) ──
-    var tailIds = ['tail-b', 'tail-f', 'tail-c'];
-
-    function expandTail(tailEl) {
-      tailEl.style.maxWidth = tailEl.dataset.expandWidth;
-      tailEl.style.opacity = '1';
-    }
-
-    function collapseTail(tailEl) {
-      tailEl.style.maxWidth = '0';
-      tailEl.style.opacity = '0';
-    }
-
-    function measureAndSet() {
-      var bfcEl = document.getElementById('bfc');
-      var groups = bfcEl.querySelectorAll('.word-group');
-      var savedDisplay = [];
-      groups.forEach(function(g, i) { savedDisplay[i] = g.style.display; g.style.display = ''; });
-
-      var bfcWidth = bfcEl.offsetWidth;
-      document.getElementById('logo-roof').style.width = (bfcWidth * 0.8) + 'px';
-      document.getElementById('logo-nail').style.width = bfcWidth + 'px';
-
-      tailIds.forEach(function(id) {
-        var tailEl = document.getElementById(id);
-        tailEl.style.maxWidth = 'none'; tailEl.style.opacity = '1';
-        tailEl.style.transition = 'none'; tailEl.style.position = 'absolute';
-        tailEl.style.visibility = 'hidden';
-        var tailWidth = tailEl.scrollWidth;
-        tailEl.style.position = ''; tailEl.style.visibility = '';
-        tailEl.style.maxWidth = '0'; tailEl.style.opacity = '0';
-        tailEl.style.transition = '';
-        tailEl.dataset.expandWidth = (tailWidth + 2) + 'px';
-      });
-
-      groups.forEach(function(g, i) { g.style.display = savedDisplay[i]; });
-
-      // Hover expand on idle
-      tailIds.forEach(function(id) {
-        var tailEl = document.getElementById(id);
-        var group = tailEl.closest('.word-group');
-        group.addEventListener('mouseenter', function() { expandTail(tailEl); });
-        group.addEventListener('mouseleave', function() { collapseTail(tailEl); });
-      });
-    }
-
-    var TW = {
-      wordHold: 1000,
-      expandDur: 1.2,
-      slideDur: 1.0,
-      loftcoHold: 1500,
-      loftcoFade: 0.6,
-      postFadeGap: 700,
-      nextWordDelay: 500
-    };
-
-    var animTimers = [];
-    function animTimeout(fn, ms) { var id = setTimeout(fn, ms); animTimers.push(id); return id; }
-    function clearAnimTimers() { animTimers.forEach(function(id) { clearTimeout(id); }); animTimers = []; }
-
-    // Loftco Variant: LOFTCO -> Better -> Faster -> Cheaper -> LOFTCO
-    function runLoftco() {
-      clearAnimTimers();
-      var roof = document.getElementById('logo-roof');
-      var nail = document.getElementById('logo-nail');
-      var bfcEl = document.getElementById('bfc');
-      var layered = document.getElementById('loftco-layered');
-      var layerText = document.getElementById('layer-text');
-      var layerNail = document.getElementById('layer-nail');
-
-      roof.classList.add('hidden');
-      nail.classList.add('hidden');
-
-      layered.classList.add('visible');
-      layered.style.width = 'clamp(16rem, 40vw, 28rem)';
-      layered.style.opacity = '1';
-      layered.style.transition = 'none';
-      layerText.style.opacity = '1';
-      layerText.style.transition = 'none';
-      layerNail.style.transform = 'scale(1, 1)';
-      layerNail.style.transition = 'none';
-
-      bfcEl.style.opacity = '0';
-      bfcEl.style.transition = 'none';
-      bfcEl.style.justifyContent = 'center';
-
-      var groups = bfcEl.querySelectorAll('.word-group');
-      var initials = bfcEl.querySelectorAll('.initial');
-      groups.forEach(function(g) { g.style.display = 'none'; });
-      initials.forEach(function(i) { i.style.opacity = '0'; i.style.transition = 'none'; });
-      tailIds.forEach(function(id) {
-        var tail = document.getElementById(id);
-        tail.style.maxWidth = '0'; tail.style.opacity = '0';
-        tail.style.transition = ''; tail.style.transform = '';
-        tail.style.direction = ''; tail.style.textAlign = '';
-      });
-
-      var tailB = document.getElementById('tail-b');
-      var tailF = document.getElementById('tail-f');
-      var tailC = document.getElementById('tail-c');
-
-      function slideOutWord(groupIdx, tailEl, duration) {
-        duration = duration || 1.0;
-        var group = groups[groupIdx];
-        var groupW = group.offsetWidth;
-        var groupH = group.offsetHeight;
-        group.style.position = 'absolute';
-        group.style.width = groupW + 'px';
-        group.style.overflow = 'hidden';
-        bfcEl.style.minHeight = groupH + 'px';
-        var curve = 'cubic-bezier(0.25, 1, 0.5, 1)';
-        initials[groupIdx].style.transition = 'transform ' + duration + 's ' + curve + ', opacity ' + (duration * 0.8) + 's ease';
-        initials[groupIdx].style.transform = 'translateX(-' + groupW + 'px)';
-        initials[groupIdx].style.opacity = '0';
-        tailEl.style.transition = 'transform ' + duration + 's ' + curve + ', opacity ' + (duration * 0.8) + 's ease';
-        tailEl.style.transform = 'translateX(-' + groupW + 'px)';
-        tailEl.style.opacity = '0';
-        animTimeout(function() {
-          group.style.position = ''; group.style.width = '';
-          group.style.overflow = ''; group.style.display = 'none';
-          bfcEl.style.minHeight = '';
-          initials[groupIdx].style.transition = 'none'; initials[groupIdx].style.transform = '';
-          initials[groupIdx].style.opacity = '0';
-          tailEl.style.transition = 'none'; tailEl.style.transform = '';
-          tailEl.style.maxWidth = '0'; tailEl.style.opacity = '0';
-        }, duration * 1000 - 100);
-      }
-
-      var expandCurve = 'max-width ' + TW.expandDur + 's cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease';
-      function showAndExpand(groupIdx, tailEl) {
-        groups[groupIdx].style.display = '';
-        initials[groupIdx].style.opacity = '1';
-        initials[groupIdx].style.transition = 'none';
-        tailEl.style.transition = 'none'; tailEl.style.maxWidth = '0'; tailEl.style.opacity = '0';
-        groups[groupIdx].offsetWidth;
-        initials[groupIdx].style.transition = 'opacity 0.3s ease';
-        tailEl.style.transition = expandCurve;
-        expandTail(tailEl);
-      }
-
-      var slideDur = TW.slideDur;
-      var slideMs = slideDur * 1000;
-
-      // Phase 1: LOFTCO text fades out
-      animTimeout(function() {
-        layerText.style.transition = 'opacity ' + TW.loftcoFade + 's ease';
-        layerText.style.opacity = '0';
-      }, TW.loftcoHold);
-
-      var t = TW.loftcoHold + TW.postFadeGap;
-
-      // Phase 2: "Better" appears centered
-      animTimeout(function() {
-        bfcEl.style.opacity = '1'; bfcEl.style.transition = 'none';
-        showAndExpand(0, tailB);
-      }, t);
-
-      var nwd = TW.nextWordDelay;
-
-      // Phase 3: Better out, Faster in
-      var p3 = t + TW.wordHold;
-      animTimeout(function() { slideOutWord(0, tailB, slideDur); }, p3);
-      animTimeout(function() { showAndExpand(1, tailF); }, p3 + nwd);
-
-      // Phase 4: Faster out, Cheaper in
-      var p4 = p3 + nwd + TW.wordHold;
-      animTimeout(function() { slideOutWord(1, tailF, slideDur); }, p4);
-      animTimeout(function() { showAndExpand(2, tailC); }, p4 + nwd);
-
-      // Phase 5: Cheaper out
-      var p5 = p4 + nwd + TW.wordHold;
-      animTimeout(function() { slideOutWord(2, tailC, slideDur); }, p5);
-
-      // Phase 6: LOFTCO crossfades back in
-      var p6 = p5 + slideMs + 200;
-      animTimeout(function() {
-        bfcEl.style.opacity = '0';
-        layerText.style.transition = 'opacity 0.8s ease';
-        layerText.style.opacity = '1';
-      }, p6);
-
-      // Phase 7: Clean up + show hero content
-      animTimeout(function() {
-        groups.forEach(function(g) { g.style.display = ''; g.style.overflow = ''; });
-        initials.forEach(function(i) { i.style.transition = ''; i.style.opacity = ''; i.style.transform = ''; });
-        bfcEl.style.justifyContent = '';
-        layerText.style.transition = '';
-        [tailB, tailF, tailC].forEach(function(tail) {
-          tail.style.transition = ''; tail.style.opacity = '';
-          tail.style.transform = ''; tail.style.direction = ''; tail.style.textAlign = '';
-        });
-        // Reveal hero content below
-        document.getElementById('hero-content').classList.add('visible');
-      }, p6 + 1500);
-    }
-
-    // Run on page load
+    // ── HERO CONTENT REVEAL (after animated logo opening, ~2.8 s) ──
     document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(function() { measureAndSet(); runLoftco(); }, 100);
+      var hc = document.getElementById('hero-content');
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var motto = document.getElementById('hero-motto');
+      function showMotto() { motto.classList.add('shown'); }
+      if (reduced) { hc.classList.add('visible'); showMotto(); return; }
+      setTimeout(function() { hc.classList.add('visible'); }, 2900);
+      // The logo plays its opening and one Better / Faster / Cheaper pass, stops on LOFTCO and reports "done";
+      // then the motto takes over. Fallback in case the message never arrives.
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.loftcoLogo === 'done') showMotto();
+      });
+      setTimeout(showMotto, 15000);
     });
-
-    window.addEventListener('resize', measureAndSet);
 
     // Dynamic Loftco age (founded 3/6/1988)
     (function() {
